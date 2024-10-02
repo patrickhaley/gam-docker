@@ -1,23 +1,44 @@
-FROM python:3.8-alpine3.13
+FROM python:3.9-slim
 
-LABEL maintainer="minh@truong.fi" 
+LABEL maintainer="patrick.haley@gjgardner.com"
 
-ARG USER=gam
-ENV HOME /home/$USER
+# Set up environment variables
+ENV USER=gam
+ENV HOME /home/$USER 
+ENV GAMCFGDIR="$HOME/GAMConfig"
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Install necessary tools
+RUN apt-get update && \
+    apt-get install -y curl gnupg2 xz-utils && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN adduser -D $USER \
-    && apk add --no-cache bash curl \
-    && cd /tmp \
-    && curl -L -o $HOME/install-gam https://git.io/install-gam \
-    && chown $USER $HOME/install-gam \
-    && chmod 700 $HOME/install-gam \
-    && chown $USER /usr/local/bin/docker-entrypoint.sh \
-    && chmod 700 /usr/local/bin/docker-entrypoint.sh \
-    && sed -i 's/\r//' /usr/local/bin/docker-entrypoint.sh
+# Create a non-root user and set up the home directory
+RUN useradd -m -s /bin/bash $USER && \
+    mkdir -p $HOME/bin $HOME/GAMConfig $HOME/GAMWork && \
+    mkdir -p $HOME/GAMConfig/au $HOME/GAMConfig/nz $HOME/GAMConfig/us && \
+    mkdir -p $HOME/GAMWork/au $HOME/GAMWork/nz $HOME/GAMWork/us && \
+    chown -R $USER:$USER $HOME
 
+# Copy requirements file and entrypoint script
+COPY requirements.txt .
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+# Ensure the entrypoint script has the correct permissions and line endings
+RUN chmod +x /docker-entrypoint.sh && \
+    sed -i 's/\r$//' /docker-entrypoint.sh
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Switch to non-root user
 USER $USER
 WORKDIR $HOME
 
-ENTRYPOINT [ "bash", "/usr/local/bin/docker-entrypoint.sh" ]
+# Download and run the GAM install script
+RUN curl -s -S -L https://git.io/install-gam | bash -s -- -l
+
+# Set a clean PATH specific to the container
+ENV PATH="/home/$USER/bin:/home/$USER/bin/gam7:/usr/local/bin:/usr/bin:/bin"
+
+# Set the entrypoint
+ENTRYPOINT ["/docker-entrypoint.sh"]

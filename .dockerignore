@@ -1,0 +1,9 @@
+**/.git
+**/.gitignore
+**/README.md
+**/gamcache
+**/GAMWork
+oauth2.txt.lock
+LICENSE
+*.pyc
+__pycache__

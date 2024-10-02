@@ -1,11 +1,22 @@
 #!/bin/bash
+
+# Docker Entrypoint Script for GAM7
+
 set -e
 
-#If GAM is not installed start setup or otherwise just run gam
-if [ ! -d "$HOME/bin/gam" ]; then
-    $HOME/install-gam
-elif [[ "$@" == "update-gam" ]]; then
-    bash <(curl -s -S -L https://git.io/install-gam) -l
+# Update gam.cfg with correct paths
+sed -i "s|\${HOME}|/home/gam|g" $GAMCFGDIR/gam.cfg
+
+# Ensure GAM is in the PATH
+export PATH="/home/gam/bin:/home/gam/bin/gam7:/usr/local/bin:/usr/bin:/bin"
+
+# Create an alias for gam
+alias gam='/home/gam/bin/gam7/gam'
+
+# If no command is provided, keep the container running
+if [ $# -eq 0 ]; then
+    exec tail -f /dev/null
 else
-    $HOME/bin/gam/gam "$@"
+    # Execute the provided command
+    exec "$@"
 fi
