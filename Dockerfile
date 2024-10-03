@@ -1,6 +1,5 @@
-FROM python:3.9-slim
-
-LABEL maintainer="patrick.haley@gjgardner.com"
+# Use buildx to create a multi-platform image
+FROM --platform=$BUILDPLATFORM python:3.9-slim AS builder
 
 # Set up environment variables
 ENV USER=gam
@@ -42,3 +41,10 @@ ENV PATH="/home/$USER/bin:/home/$USER/bin/gam7:/usr/local/bin:/usr/bin:/bin"
 
 # Set the entrypoint
 ENTRYPOINT ["/docker-entrypoint.sh"]
+
+# Create a target stage for each platform
+FROM builder AS amd64
+FROM builder AS arm64
+
+# Use a manifest to combine the images
+FROM ${TARGETARCH}

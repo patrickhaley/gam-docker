@@ -1,6 +1,6 @@
 # GAM7 Docker
 
-This project provides a Dockerized version of GAM7, the Google Workspace Management Tool.
+This project provides a Dockerized version of GAM7, the Google Workspace Management Tool, with support for multiple platforms.
 
 ## Prerequisites
 
@@ -41,21 +41,46 @@ Note: This setup is specific to my organization and allows me to manage multiple
    ```
 
 ### Using the Pre-built Docker Hub Image
+
 If you prefer not to build the image yourself, you can use the pre-built image from Docker Hub:
 
 1. Pull the latest image:
 
-```
-docker pull patrickhaley/gam-docker:latest
-```
+   ```
+   docker pull patrickhaley/gam-docker:latest
+   ```
+
 2. Update the `docker-compose.yml` file to use the Docker Hub image:
 
-```
-services:
-  gam-docker:
-    image: patrickhaley/gam-docker:latest
-    # ... rest of your docker-compose configuration ...
-```
+   ```yaml
+   services:
+     gam-docker:
+       image: patrickhaley/gam-docker:latest
+       # ... rest of your docker-compose configuration ...
+   ```
+
+### Multi-Platform Support
+
+Our Docker image now supports multiple platforms, including AMD64 (Intel/AMD) and ARM64 (Apple Silicon) architectures. This means you can run the same image on various systems, including:
+
+- Intel-based Macs
+- Apple Silicon Macs (M1, M2, etc.)
+- Linux servers (both AMD64 and ARM64)
+- Google Cloud environments
+
+To use the multi-platform image:
+
+1. Ensure you're using Docker BuildX (included with Docker Desktop and recent Docker Engine versions).
+
+2. When building the image locally, use:
+
+   ```bash
+   docker buildx build --platform linux/amd64,linux/arm64 -t yourdockerhub/gam-docker:latest --push .
+   ```
+
+   This will create a multi-platform image that works across different architectures.
+
+3. If you're using the pre-built image from Docker Hub, it's already multi-platform. You don't need to specify the platform when running it.
 
 ### Running the Container
 
@@ -70,7 +95,8 @@ services:
    ```bash
    docker ps
    ```
-Note: These instructions work for both locally built images and the pre-built Docker Hub image.
+
+Note: These instructions work for both locally built images and the pre-built Docker Hub image, across all supported platforms.
 
 ### Using GAM7
 
@@ -138,7 +164,7 @@ To run GAM commands without entering the container each time, you can set up a p
    sudo nano /usr/local/bin/gam
    ```
 
-2. Add the code from the [gam](gam) file in the root of this direcotry to the file.
+2. Add the code from the [gam](gam) file in the root of this directory to the file.
 
 3. Update the `DOCKER_COMPOSE_PATH` in the script to point to the directory containing your `docker-compose.yml` file.
 
@@ -148,6 +174,7 @@ To run GAM commands without entering the container each time, you can set up a p
    sudo chmod +x /usr/local/bin/gam
    ```
 
+Now you can run GAM commands directly from your host system:
 
 ```bash
 gam version
@@ -192,25 +219,20 @@ RUN echo $CUSTOM_ARG
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Pushing Updates to Docker Hub
+
 If you've made changes to the image and want to push an update to Docker Hub:
 
 1. Rebuild the image:
 
-```
-docker compose build
-```
+   ```
+   docker buildx build --platform linux/amd64,linux/arm64 -t patrickhaley/gam-docker:latest .
+   ```
 
-2. Tag the new image:
+2. Push to Docker Hub:
 
-```
-docker tag patrickhaley/gam-docker:latest patrickhaley/gam-docker:latest
-```
-
-3. Push to Docker Hub:
-
-```
-docker push patrickhaley/gam-docker:latest
-```
+   ```
+   docker push patrickhaley/gam-docker:latest
+   ```
 
 ## License
 
