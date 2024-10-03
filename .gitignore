@@ -1,8 +1,58 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+
+# Directories
+/gamcache/
+/bin/
+/gam7/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Google Cloud
+.config/gcloud/
+
+# GAM specific
+client_secrets.json
+oauth2.txt
+oauth2service.json
+GAMConfig/**/client_secrets.json
+GAMConfig/**/oauth2.txt
+GAMConfig/**/oauth2service.json
+
+# Data files
 *.csv
 *.json
-*.txt
-*.pyc
-__pycache__/
-.DS_Store
-*.log
-/gamcache
+
+# Docker
+# .dockerignore
+# Dockerfile
+# docker-compose.yml
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.*
+
+# Other
+*.bak
+*.tmp
