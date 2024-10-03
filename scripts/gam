@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Path to your docker-compose.yml file
+DOCKER_COMPOSE_PATH="/path/to/gam-docker"
+
+# Change to the directory containing docker-compose.yml
+cd "$DOCKER_COMPOSE_PATH"
+
+# Run the GAM command in the Docker container
+docker compose exec -T gam-docker bash -c "export PATH=/home/gam/bin:/home/gam/bin/gam7:/usr/local/bin:/usr/bin:/bin && alias gam='/home/gam/bin/gam7/gam' && gam $*"
