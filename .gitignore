@@ -4,7 +4,7 @@ __pycache__/
 *.so
 
 # Directories
-/gamcache/
+**/gamcache/
 /bin/
 /gam7/
 
