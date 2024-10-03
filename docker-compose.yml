@@ -3,15 +3,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: patrickhaley/gam-docker:latest
+    image: us-central1-docker.pkg.dev/gam-project-5y3-yuq-dpk/gam7-repo/gam-docker:latest
+    platform: linux/amd64
     container_name: gam-docker
     volumes:
       - ./GAMConfig:/home/gam/GAMConfig
       - ./GAMWork:/home/gam/GAMWork
+      - ./scripts:/scripts
     environment:
-      - PATH=/home/gam/bin:$PATH
+      - PATH=/home/gam/bin:/home/gam/bin/gam7:$PATH
       - GAMCFGDIR=/home/gam/GAMConfig
-    entrypoint: /docker-entrypoint.sh
+    entrypoint: ["/docker-entrypoint.sh"]
     command: tail -f /dev/null
     tty: true
     stdin_open: true
+    restart: unless-stopped

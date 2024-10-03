@@ -1,18 +1,45 @@
 # GAM7 Docker
 
-This project provides a Dockerized version of GAM7, the Google Workspace Management Tool, with support for multiple platforms.
+This project provides a Dockerized version of GAM7, the Google Workspace Management Tool, optimized for use with Google Cloud and Artifact Registry.
+
+## Table of Contents
+1. [Prerequisites](#prerequisites)
+2. [Project Structure](#project-structure)
+3. [Getting Started](#getting-started)
+4. [Deploying to Google Artifact Registry](#deploying-to-google-artifact-registry)
+5. [Using GAM7 Docker with Google Cloud Shell](#using-gam7-docker-with-google-cloud-shell)
+6. [Job Scheduling in Google Cloud](#job-scheduling-in-google-cloud)
+7. [Multi-Platform Support](#multi-platform-support)
+8. [Troubleshooting](#troubleshooting)
+9. [Advanced Usage](#advanced-usage)
+10. [Contributing](#contributing)
+11. [License](#license)
+12. [Support](#support)
 
 ## Prerequisites
 
-- Docker installed on your system
+- Google Cloud account with billing enabled
+- Google Cloud SDK (`gcloud`) installed and configured
+- Docker installed on your local system (for building and testing)
 - Docker Compose V2 installed on your system
 - Basic understanding of GAM and Google Workspace administration
+
+## Project Structure
+
+The project consists of the following key files and directories:
+
+- `Dockerfile`: Defines the Docker image for GAM7
+- `docker-compose.yml`: Configures the Docker container
+- `requirements.txt`: Lists Python dependencies
+- `scripts/`: Directory containing scripts for setup and entrypoint
+  - `docker-entrypoint.sh`: Script that runs when the container starts
+  - `setup-gam7-docker.sh`: Script to set up the environment in Google Cloud Shell
+- `GAMConfig/`: Directory for GAM configuration files
+- `GAMWork/`: Directory for GAM work files
 
 ## Getting Started
 
 ### Setting up GAMConfig
-
-Note: This setup is specific to my organization and allows me to manage multiple Google accounts. Learn more about [managing multiple customers and domains here.](https://github.com/taers232c/GAMADV-XTD3/wiki/gam.cfg#multiple-customers-and-domains)
 
 1. Create a directory structure for your GAM configuration:
 
@@ -25,214 +52,186 @@ Note: This setup is specific to my organization and allows me to manage multiple
 
 3. Ensure your `gam.cfg` file is present in the `GAMConfig` directory.
 
-### Building the Docker Image
+## Deploying to Google Artifact Registry
 
-1. Clone this repository:
-
-   ```bash
-   git clone https://github.com/patrickhaley/gam-docker.git
-   cd gam-docker
-   ```
-
-2. Build the Docker image:
+1. Enable the Artifact Registry API in your Google Cloud project:
 
    ```bash
-   docker compose build
+   gcloud services enable artifactregistry.googleapis.com
    ```
 
-### Using the Pre-built Docker Hub Image
+2. Create a repository in Artifact Registry:
 
-If you prefer not to build the image yourself, you can use the pre-built image from Docker Hub:
-
-1. Pull the latest image:
-
-   ```
-   docker pull patrickhaley/gam-docker:latest
+   ```bash
+   gcloud artifacts repositories create gam7-repo --repository-format=docker --location=us-central1 --description="GAM7 Docker images"
    ```
 
-2. Update the `docker-compose.yml` file to use the Docker Hub image:
+3. Configure Docker to use Google Cloud as a credential helper:
+
+   ```bash
+   gcloud auth configure-docker us-central1-docker.pkg.dev
+   ```
+
+4. Build your Docker image:
+
+   ```bash
+   docker build -t us-central1-docker.pkg.dev/gam-project-5y3-yuq-dpk/gam7-repo/gam-docker:latest .
+   ```
+
+5. Push the image to Artifact Registry:
+
+   ```bash
+   docker push us-central1-docker.pkg.dev/gam-project-5y3-yuq-dpk/gam7-repo/gam-docker:latest
+   ```
+
+6. Update your `docker-compose.yml` to use the image from Artifact Registry:
 
    ```yaml
    services:
      gam-docker:
-       image: patrickhaley/gam-docker:latest
-       # ... rest of your docker-compose configuration ...
+       image: us-central1-docker.pkg.dev/gam-project-5y3-yuq-dpk/gam7-repo/gam-docker:latest
+       platform: linux/amd64
+       volumes:
+         - ./GAMConfig:/home/gam/GAMConfig
+         - ./GAMWork:/home/gam/GAMWork
+       environment:
+         - PATH=/home/gam/bin:/home/gam/bin/gam7:$PATH
+         - GAMCFGDIR=/home/gam/GAMConfig
+       entrypoint: ["/docker-entrypoint.sh"]
+       command: tail -f /dev/null
+       tty: true
+       stdin_open: true
+       restart: unless-stopped
    ```
 
-### Multi-Platform Support
+## Using GAM7 Docker with Google Cloud Shell
 
-Our Docker image now supports multiple platforms, including AMD64 (Intel/AMD) and ARM64 (Apple Silicon) architectures. This means you can run the same image on various systems, including:
+Google Cloud Shell provides a convenient environment for managing your Google Cloud resources. Here's how to use GAM7 Docker in Cloud Shell:
 
-- Intel-based Macs
-- Apple Silicon Macs (M1, M2, etc.)
-- Linux servers (both AMD64 and ARM64)
-- Google Cloud environments
-
-To use the multi-platform image:
-
-1. Ensure you're using Docker BuildX (included with Docker Desktop and recent Docker Engine versions).
-
-2. When building the image locally, use:
+1. Open Google Cloud Shell and clone your repository:
 
    ```bash
-   docker buildx build --platform linux/amd64,linux/arm64 -t yourdockerhub/gam-docker:latest --push .
+   git clone https://phaley@bitbucket.org/GJGTech/gam-docker.git
+   cd gam-docker
    ```
 
-   This will create a multi-platform image that works across different architectures.
-
-3. If you're using the pre-built image from Docker Hub, it's already multi-platform. You don't need to specify the platform when running it.
-
-### Running the Container
-
-1. Start the container:
+2. Run the setup script:
 
    ```bash
-   docker compose up -d
+   ./scripts/setup-gam7-docker.sh
    ```
 
-2. Verify the container is running:
+   This script installs Docker Compose, configures Docker for Artifact Registry, pulls the latest image, and starts the container.
+
+3. To run GAM commands:
 
    ```bash
-   docker ps
+   docker-compose exec gam-docker gam version
    ```
 
-Note: These instructions work for both locally built images and the pre-built Docker Hub image, across all supported platforms.
+## Job Scheduling in Google Cloud
 
-### Using GAM7
+For scheduling GAM7 tasks, use Google Cloud Scheduler with Cloud Run:
 
-1. To run GAM commands, use:
+1. Deploy your GAM7 container to Cloud Run:
 
    ```bash
-   docker compose exec gam-docker gam version
+   gcloud run deploy gam7-service --image us-central1-docker.pkg.dev/gam-project-5y3-yuq-dpk/gam7-repo/gam-docker:latest --platform managed
    ```
 
-2. To enter the container's shell:
+2. Create a Cloud Scheduler job:
 
    ```bash
-   docker compose exec gam-docker bash
+   gcloud scheduler jobs create http gam7-job \
+     --schedule="0 2 * * *" \
+     --uri="https://gam7-service-xxxx-uc.a.run.app/run-gam-command" \
+     --http-method=POST \
+     --message-body='{"command": "update group"}'
    ```
 
-## Managing GAMConfig
+## Multi-Platform Support
 
-- Your local `GAMConfig` directory is mounted as a volume in the container.
-- Any changes made to files in this directory will persist across container restarts.
-- To update your GAM configuration, simply modify the files in your local `GAMConfig` directory.
+Our Docker image supports both AMD64 and ARM64 architectures. To build a multi-platform image:
 
-## Container Lifecycle
-
-### Stopping the Container
-
-```bash
-docker compose down
-```
-
-### Removing the Container
-
-```bash
-docker compose down -v
-```
-
-This will also remove the associated volumes.
-
-### Updating the Container
-
-1. Pull the latest image from Docker Hub:
+1. Set up Docker BuildX:
 
    ```bash
-   docker pull patrickhaley/gam-docker:latest
+   docker buildx create --name mybuilder --use
    ```
 
-2. Stop and remove the existing container:
+2. Build and push the multi-platform image:
 
    ```bash
-   docker compose down
+   docker buildx build --platform linux/amd64,linux/arm64 \
+     -t us-central1-docker.pkg.dev/gam-project-5y3-yuq-dpk/gam7-repo/gam-docker:latest \
+     --push .
    ```
-
-3. Start a new container with the updated image:
-
-   ```bash
-   docker compose up -d
-   ```
-
-## Convenient Command Execution
-
-To run GAM commands without entering the container each time, you can set up a proxy script:
-
-1. Create a file named `gam` (without any extension) in a directory that's in your system's PATH (e.g., `/usr/local/bin/` on Unix-like systems):
-
-   ```bash
-   sudo nano /usr/local/bin/gam
-   ```
-
-2. Add the code from the [gam](gam) file in the root of this directory to the file.
-
-3. Update the `DOCKER_COMPOSE_PATH` in the script to point to the directory containing your `docker-compose.yml` file.
-
-4. Make the script executable:
-
-   ```bash
-   sudo chmod +x /usr/local/bin/gam
-   ```
-
-Now you can run GAM commands directly from your host system:
-
-```bash
-gam version
-gam select us save
-gam info domain
-```
-
-These commands will be executed inside the Docker container automatically.
 
 ## Troubleshooting
 
-- To view container logs:
+If you encounter issues running GAM commands:
 
-  ```bash
-  docker logs gam-docker
-  ```
+1. Check the GAM executable location:
 
-- If you encounter issues, ensure your GAMConfig files are correctly set up and the paths in your `gam.cfg` file are correct.
+   ```bash
+   docker-compose exec gam-docker which gam
+   ```
+
+2. Verify permissions:
+
+   ```bash
+   docker-compose exec gam-docker ls -l /home/gam/bin/gam7/gam
+   ```
+
+3. Fix permissions if necessary:
+
+   ```bash
+   docker-compose exec gam-docker chmod +x /home/gam/bin/gam7/gam
+   ```
+
+4. If you're having issues with the container not starting or exiting immediately, check the Docker logs:
+
+   ```bash
+   docker-compose logs gam-docker
+   ```
+
+5. If you need to modify the entrypoint script:
+   
+   ```bash
+   nano scripts/docker-entrypoint.sh
+   ```
+   
+   Remember to rebuild your Docker image after making changes to this script.
 
 ## Advanced Usage
 
 ### Custom Build Arguments
 
-If you need to customize the build process, you can use build arguments. Edit the `docker-compose.yml` file to include build args:
+To customize the build process, use build args in your `docker-compose.yml`:
 
 ```yaml
-build:
-  context: .
-  args:
-    - CUSTOM_ARG=value
+services:
+  gam-docker:
+    build:
+      context: .
+      args:
+        CUSTOM_ARG: value
 ```
 
-Then update the Dockerfile to use these args:
+Update the Dockerfile to use these args:
 
 ```dockerfile
 ARG CUSTOM_ARG
 RUN echo $CUSTOM_ARG
 ```
 
+### Updating Dependencies
+
+If you need to update or add Python dependencies, modify the `requirements.txt` file. Then rebuild your Docker image to apply the changes.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Pushing Updates to Docker Hub
-
-If you've made changes to the image and want to push an update to Docker Hub:
-
-1. Rebuild the image:
-
-   ```
-   docker buildx build --platform linux/amd64,linux/arm64 -t patrickhaley/gam-docker:latest .
-   ```
-
-2. Push to Docker Hub:
-
-   ```
-   docker push patrickhaley/gam-docker:latest
-   ```
 
 ## License
 

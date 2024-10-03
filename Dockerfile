@@ -20,7 +20,7 @@ RUN useradd -m -s /bin/bash $USER && \
 
 # Copy requirements file and entrypoint script
 COPY requirements.txt .
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 
 # Ensure the entrypoint script has the correct permissions and line endings
 RUN chmod +x /docker-entrypoint.sh && \
@@ -48,3 +48,7 @@ FROM builder AS arm64
 
 # Use a manifest to combine the images
 FROM ${TARGETARCH}
+
+# Add labels for better image management
+LABEL org.opencontainers.image.source="https://github.com/yourusername/gam7-docker"
+LABEL org.opencontainers.image.description="GAM7 Docker image for Google Workspace Management"
